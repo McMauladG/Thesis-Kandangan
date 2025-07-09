@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - HEAS</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f4f8; }
+    header {
+      background: #0d6efd; color: white; padding: 20px; text-align: center;
+      font-size: 24px;
+    }
+    .summary {
+      display: flex; justify-content: space-around; padding: 20px;
+    }
+    .card {
+      background: white; border-radius: 12px; padding: 20px; width: 20%;
+      text-align: center; box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    .card span {
+      font-size: 28px; color: #0d6efd; font-weight: bold;
+    }
+    .chart-section, .sms-log {
+      width: 90%; margin: 0 auto; padding: 20px;
+    }
+    .sms-log {
+      background: #fff; border-radius: 8px; padding: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .sms-log h3 { margin-top: 0; }
+    .sms-log p {
+      background: #e7f3ff; margin: 5px 0; padding: 8px;
+      border-radius: 5px; border-left: 5px solid #0d6efd;
+    }
+    table {
+      width: 90%; margin: 20px auto; border-collapse: collapse;
+      background: white; box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    }
+    th, td { padding: 12px; border: 1px solid #ccc; text-align: center; }
+    th { background: #0d6efd; color: white; }
+    button {
+      padding: 5px 10px; margin: 2px; border: none; border-radius: 5px;
+      cursor: pointer;
+    }
+    .approve { background: #28a745; color: white; }
+    .reject { background: #dc3545; color: white; }
+    .export {
+      display: block; margin: 20px auto; padding: 10px 25px;
+      background: #17a2b8; color: white; border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>Admin Panel – Health Emergency Alert System</header>
+
+<div class="summary">
+  <div class="card"><h4>Total</h4><span id="totalCount">0</span></div>
+  <div class="card"><h4>Approved</h4><span id="approvedCount">0</span></div>
+  <div class="card"><h4>Rejected</h4><span id="rejectedCount">0</span></div>
+  <div class="card"><h4>Pending</h4><span id="pendingCount">0</span></div>
+</div>
+
+<div class="chart-section">
+  <h3 style="text-align:center;">📊 Visual Chart: Incident Summary</h3>
+  <canvas id="incidentChart" height="100"></canvas>
+</div>
+
+<table id="reportTable">
+  <thead>
+    <tr>
+      <th>Student</th>
+      <th>Grade</th>
+      <th>Incident</th>
+      <th>Status</th>
+      <th>Submitted By</th>
+      <th>Time</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div class="sms-log">
+  <h3>📱 Simulated SMS Notifications</h3>
+  <div id="smsLog"></div>
+</div>
+
+<button class="export" onclick="exportCSV()">⬇ Export to CSV</button>
+
+<script>
+  const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+
+  function updateSummary() {
+    document.getElementById("totalCount").textContent = reports.length;
+    document.getElementById("approvedCount").textContent = reports.filter(r => r.status === "Approved").length;
+    document.getElementById("rejectedCount").textContent = reports.filter(r => r.status === "Rejected").length;
+    document.getElementById("pendingCount").textContent = reports.filter(r => r.status === "Pending").length;
+  }
+
+  function renderTable() {
+    const tbody = document.querySelector("#reportTable tbody");
+    tbody.innerHTML = "";
+    reports.forEach((r, i) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${r.student_name}</td>
+        <td>${r.grade}</td>
+        <td>${r.incident_type}</td>
+        <td>${r.status}</td>
+        <td>${r.submitted_by}</td>
+        <td>${r.time}</td>
+        <td>
+          <button class="approve" onclick="changeStatus(${i}, 'Approved')">✔</button>
+          <button class="reject" onclick="changeStatus(${i}, 'Rejected')">✖</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function changeStatus(index, newStatus) {
+    reports[index].status = newStatus;
+    localStorage.setItem("reports", JSON.stringify(reports));
+    addSMSLog(reports[index], newStatus);
+    updateSummary();
+    renderTable();
+  }
+
+  function addSMSLog(report, status) {
+    const smsLog = document.getElementById("smsLog");
+    const message = `📩 SMS to parent of ${report.student_name} (Grade ${report.grade}): Health report "${report.incident_type}" has been marked as '${status}'.`;
+    const p = document.createElement("p");
+    p.textContent = message;
+    smsLog.prepend(p);
+  }
+
+  function exportCSV() {
+    let csv = "Student,Grade,Incident,Status,Submitted By,Time\\n";
+    reports.forEach(r => {
+      csv += `${r.student_name},${r.grade},${r.incident_type},${r.status},${r.submitted_by},${r.time}\\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "incident_reports.csv";
+    a.click();
+  }
+
+  function renderChart() {
+    const ctx = document.getElementById('incidentChart').getContext('2d');
+    const typeCount = {};
+    reports.forEach(r => {
+      const type = r.incident_type || 'Others';
+      typeCount[type] = (typeCount[type] || 0) + 1;
+    });
+    const labels = Object.keys(typeCount);
+    const data = Object.values(typeCount);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Incident Count',
+          data,
+          backgroundColor: '#0d6efd'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  updateSummary();
+  renderTable();
+  renderChart();
+</script>
+
+</body>
+</html>

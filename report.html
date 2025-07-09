@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Submit Incident Report - HEAS</title>
+  <style>
+    body {
+      background: #e3f2fd;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    form {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+      animation: fadeIn 1.5s ease;
+    }
+    h2 {
+      text-align: center;
+      color: #0d6efd;
+      margin-bottom: 20px;
+    }
+    label {
+      margin-top: 10px;
+      display: block;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      background: #0d6efd;
+      color: white;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <form id="incidentForm">
+    <h2>Submit Health Incident</h2>
+    <label>Student Name</label>
+    <input type="text" id="studentName" required />
+    
+    <label>Grade Level</label>
+    <select id="grade" required>
+      <option value="">Select Grade</option>
+      <option>Grade 1</option>
+      <option>Grade 2</option>
+      <option>Grade 3</option>
+      <option>Grade 4</option>
+      <option>Grade 5</option>
+      <option>Grade 6</option>
+    </select>
+    
+    <label>Incident Type</label>
+    <input type="text" id="incident" required />
+
+    <label>Submitted By</label>
+    <input type="text" id="submittedBy" value="Teacher A" required />
+
+    <button type="submit">Submit Report</button>
+  </form>
+
+  <script>
+    document.getElementById("incidentForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const student_name = document.getElementById("studentName").value.trim();
+      const grade = document.getElementById("grade").value;
+      const incident_type = document.getElementById("incident").value.trim();
+      const submitted_by = document.getElementById("submittedBy").value.trim();
+      const time = new Date().toLocaleString();
+
+      const reports = JSON.parse(localStorage.getItem("reports") || "[]");
+      reports.push({
+        student_name, grade, incident_type, status: "Pending", submitted_by, time
+      });
+      localStorage.setItem("reports", JSON.stringify(reports));
+      alert("Incident submitted successfully.");
+      this.reset();
+    });
+  </script>
+
+</body>
+</html>
